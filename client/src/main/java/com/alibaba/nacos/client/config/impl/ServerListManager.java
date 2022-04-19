@@ -338,8 +338,7 @@ public class ServerListManager implements Closeable {
             return;
         }
         serverUrls = new ArrayList<String>(newServerAddrList);
-        iterator = iterator();
-        currentServerAddr = iterator.next();
+        refreshCurrentServerAddr();
         
         // Using unified event processor, NotifyCenter
         NotifyCenter.publishEvent(new ServerlistChangeEvent());
@@ -405,15 +404,14 @@ public class ServerListManager implements Closeable {
         return serverUrls.contains(ip);
     }
     
-    public void refreshCurrentServerAddr() {
+    public synchronized void refreshCurrentServerAddr() {
         iterator = iterator();
         currentServerAddr = iterator.next();
     }
     
     public String getCurrentServerAddr() {
         if (StringUtils.isBlank(currentServerAddr)) {
-            iterator = iterator();
-            currentServerAddr = iterator.next();
+            refreshCurrentServerAddr();
         }
         return currentServerAddr;
     }
@@ -421,9 +419,12 @@ public class ServerListManager implements Closeable {
     public void updateCurrentServerAddr(String currentServerAddr) {
         this.currentServerAddr = currentServerAddr;
     }
-    
-    public Iterator<String> getIterator() {
-        return iterator;
+
+    public synchronized String getNextServer() {
+        if (iterator.hasNext()) {
+            return iterator.next();
+        }
+        return null;
     }
     
     public String getContentPath() {
